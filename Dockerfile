@@ -21,5 +21,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
 
 # One worker on purpose: each profile keeps its catalog in memory and refreshes it in a
 # background thread, so several worker processes would each do that work again. Threads
-# give the concurrency.
-CMD ["sh", "-c", "exec gunicorn -b 0.0.0.0:${PORT:-7000} --workers 1 --threads 16 --timeout 120 'app.web:create_app()'"]
+# give the concurrency. The control socket is switched off: it needs a home folder, which the add-on's user doesn't have.
+CMD ["sh", "-c", "exec gunicorn -b 0.0.0.0:${PORT:-7000} --workers 1 --threads 16 --timeout 120 --no-control-socket 'app.web:create_app()'"]
