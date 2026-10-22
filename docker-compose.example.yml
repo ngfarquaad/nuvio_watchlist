@@ -1,0 +1,25 @@
+# Copy to docker-compose.yml, fill in the two marked values, then run:  docker compose up -d
+services:
+  nuvio_watchlist:
+    image: ghcr.io/ngfarquaad/nuvio_watchlist:latest
+    # To build from the source folder instead, replace the image line above with:  build: .
+    container_name: nuvio_watchlist
+    restart: unless-stopped
+    ports:
+      - "7000:7000"                # host:container. The container side must equal PORT below
+    environment:
+      ADMIN_PASSWORD: "set-me"                                          # 1. Required: the password for the editor
+      NUVIO_API_KEY: "sb_publishable_1Clq8rlTVACkdcZuqr6_AD__xUUC_EN"   # Nuvio's public API key, already filled in. Change it only if Nuvio changes its key
+      HOST_NAME: "http://192.168.1.50:7000"                             # 2. The address Nuvio's apps reach this server at, no trailing slash
+      
+      # Optional
+      # PORT: "7000"                                                    # Port gunicorn listens on inside the container
+      # DATA_DIR: "/data"                                               # where the database, session key and image caches live
+      # LOG_LEVEL: "INFO"                                               # DEBUG, INFO, WARNING or ERROR
+      # NUVIO_BASE_URL: "https://api.nuvio.tv"                          # Nuvio's backend
+    volumes:
+      - nuvio_watchlist_data:/data   # a named volume is the simplest choice on Docker Desktop for Windows
+      # - C:/nuvio_watchlist/data:/data   # or a folder on the Windows drive instead (remove the named volume below)
+
+volumes:
+  nuvio_watchlist_data:

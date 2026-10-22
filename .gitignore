@@ -1,0 +1,15 @@
+# local data: database, saved logins, session key, cached images
+data/
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+session.key
+
+# Python
+__pycache__/
+*.pyc
+
+# your own settings (docker-compose.example.yml is the tracked template)
+.env
+docker-compose.yml

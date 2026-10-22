@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23a493ff'/%3E%3Cstop offset='1' stop-color='%235aa9ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M12 9l11 7-11 7z' fill='%23fff'/%3E%3C/svg%3E" />
+<title>Nuvio Watchlist</title>
+<style>
+  :root {
+    --bg: #07080b; --card: #0e1015; --field: #0a0c10;
+    --line: rgba(255,255,255,.09); --line-2: rgba(255,255,255,.17);
+    --text: #f6f7f9; --muted: rgba(246,247,249,.66); --faint: rgba(246,247,249,.44);
+    --accent: #a493ff; --accent-2: #5aa9ff; --focus: #7db4ff;
+    --ok: #62d6a0; --bad: #ff8078; --warn: #f2bd62;
+    --font: "Inter", "Inter Tight", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { color-scheme: dark; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text); font: 15px/1.5 var(--font);
+    background: radial-gradient(900px 420px at 50% -90px, #1b1e2d 0%, rgba(7,8,11,0) 70%), var(--bg);
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+  p { margin: 0; }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  /* header: same shape as the Add to Nuvio page */
+  header { padding: 44px 0 26px; text-align: center; position: relative; }
+  header h1 { margin: 0; font-size: clamp(34px, 6vw, 48px); line-height: 1.05; font-weight: 650; letter-spacing: -.025em; }
+  header h1 span { background: linear-gradient(100deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tagline { margin-top: 12px; color: var(--muted); font-size: 16px; }
+  .logout { position: absolute; top: 18px; right: 20px; border: 1px solid var(--line); background: rgba(255,255,255,.03);
+            color: var(--muted); border-radius: 999px; padding: 7px 14px; font-size: 14px; cursor: pointer; }
+  .logout:hover { color: var(--text); border-color: var(--line-2); }
+
+  /* tabs: a pill bar like nuvio.tv's navigation */
+  .tabs-wrap { display: flex; justify-content: center; margin-bottom: 26px; }
+  .tabs { display: flex; gap: 4px; padding: 5px; border-radius: 999px; background: rgba(255,255,255,.04);
+          border: 1px solid var(--line); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; position: relative; border: 0; background: transparent; color: var(--muted); font-weight: 500;
+         padding: 9px 20px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .tab:disabled { opacity: .4; cursor: not-allowed; }
+  .tab:hover:not(:disabled) { color: var(--text); background: rgba(255,255,255,.05); }
+  .tab[aria-selected="true"] { background: var(--text); color: #090a0e; font-weight: 650; }
+  .tab[data-dirty]::after { content: ""; position: absolute; top: 7px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .tab.add { width: 42px; padding: 9px 0; font-size: 20px; line-height: 1; font-weight: 400; }
+
+  /* cards and rows */
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; margin-bottom: 16px; overflow: hidden; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 20px 24px; }
+  .card-head > div:first-child { flex: 1 1 0; min-width: 0; }
+  .card-head .head-right { flex: none; flex-wrap: nowrap; }
+  .card h2 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -.01em; }
+  .card .lead { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .card .lead-note { display: none; color: #7d8494; font-size: 12.5px; margin-top: 3px; }
+  details.card[open] .lead-note { display: block; }
+  details.fold { border-top: 1px solid var(--line); }
+  details.fold > summary { list-style: none; cursor: pointer; padding: 18px 52px 18px 24px; position: relative; }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary::after { content: ""; position: absolute; right: 26px; top: 50%; width: 8px; height: 8px; margin-top: -6px;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; }
+  details.fold[open] > summary::after { transform: rotate(-135deg); margin-top: -2px; }
+  details.fold > summary:hover .row-label { color: #fff; }
+  details.fold .row-help { max-width: none; }
+  .sub-body { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px 28px; padding: 0 24px 20px; }
+  .sub-body .row-control { align-items: flex-end; }
+  .crop-count { margin-top: 10px; }
+  .cache-status { flex: 1 1 280px; max-width: 340px; padding: 2px 16px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.025); }
+  .cache-status .cs-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 9px 0; font-size: 13.5px; }
+  .cache-status .cs-row + .cs-row { border-top: 1px solid var(--line); }
+  .cache-status .cs-label { color: var(--muted); display: inline-flex; align-items: center; gap: 10px; }
+  .cache-status .cs-value { font-weight: 650; font-variant-numeric: tabular-nums; text-align: right; }
+  .cache-status .cs-pill { font-size: 11.5px; padding: 2px 10px; }
+  .range-hint { color: #7d8494; font-size: 12px; text-align: right; margin: 4px 4px 0; }
+  details.card > summary { list-style: none; cursor: pointer; padding: 20px 52px 20px 24px; position: relative; }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary::after { content: ""; position: absolute; right: 26px; top: 50%; width: 8px; height: 8px; margin-top: -6px;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; }
+  details.card[open] > summary::after { transform: rotate(-135deg); margin-top: -2px; }
+  details.card > summary:hover h2 { color: #fff; }
+  .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 330px); gap: 8px 28px; padding: 18px 24px; border-top: 1px solid var(--line); align-items: center; }
+  .install-result { grid-column: 1 / -1; justify-self: end; text-align: right; }
+  .install-result .result { text-align: right; }
+  .install-result:empty, .install-result:has(.result:empty) { display: none; }
+  .row.has-badge { grid-template-columns: minmax(0, 1fr) 130px; }
+  .row.has-badge .row-label { flex-wrap: nowrap; }
+  .row-label { font-weight: 600; display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row-help { color: var(--muted); font-size: 13.5px; margin-top: 3px; max-width: 52ch; }
+  .req { font-size: 11.5px; font-weight: 500; color: var(--accent); border: 1px solid rgba(164,147,255,.4); border-radius: 999px; padding: 1px 8px; }
+  .row-control { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .row-control.right { align-items: flex-end; }
+  .control-line { display: flex; gap: 8px; align-items: center; }
+  .unit { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .err { color: var(--bad); font-size: 13px; }
+
+  input[type=text], input[type=password], input[type=number], select {
+    width: 100%; min-width: 0; background: var(--field); border: 1px solid var(--line-2); border-radius: 12px; padding: 10px 14px;
+  }
+  select { appearance: none; padding-right: 38px; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 19px) 50%, calc(100% - 13px) 50%; background-size: 6px 6px; background-repeat: no-repeat; }
+  input[type=number], input.short { max-width: 150px; }
+  /* the boxes sit on the right, in line with the toggles; the text inside them reads from the left */
+  .row-control .control-line { justify-content: flex-end; }
+  .row-control .result { text-align: right; }
+  /* units and the time readout sit inside the right end of the box, so every box ends at the same edge */
+  .suffixed { position: relative; flex: none; width: 150px; }
+  .suffixed.wide { width: 190px; }
+  .suffixed input { max-width: none; padding-right: 54px; }
+  .suffixed.wide input { padding-right: 84px; }
+  .suffixed .unit { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+  input::placeholder { color: var(--faint); }
+  input:focus-visible, select:focus-visible { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(90,169,255,.22); }
+  .invalid input, .invalid select { border-color: var(--bad); }
+  input[readonly] { background: transparent; border-style: dashed; color: var(--muted); cursor: default; }
+  input.mono, .mono input { font-family: var(--mono); font-size: 13.5px; }
+
+  /* a row whose control sits under its description, full width (the add-on link) */
+  .row.stacked { grid-template-columns: 1fr; gap: 12px; }
+  .row.stacked .row-help { max-width: none; }
+  .row.stacked .row-control { align-items: stretch; }
+
+  /* copy-to-clipboard field */
+  .copyfield { display: flex; gap: 8px; width: 100%; }
+  .copyfield input { flex: 1; font-family: var(--mono); font-size: 13px; cursor: text; border-style: solid; color: var(--text); text-align: left;
+                     background: rgba(164,147,255,.08); border-color: rgba(164,147,255,.35); }
+  .iconbtn { flex: none; display: inline-grid; place-items: center; width: 42px; height: 42px; padding: 0; border-radius: 999px; cursor: pointer;
+             border: 1px solid var(--line-2); background: #1a1d25; color: var(--text); }
+  .iconbtn:hover { background: #232733; }
+  .iconbtn svg { width: 18px; height: 18px; display: block; }
+
+  /* password field with a show/hide eye inside its right edge */
+  .pwfield { position: relative; width: 100%; }
+  .pwfield input { padding-right: 46px; }
+  .pwfield .eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; display: grid; place-items: center;
+                  border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; padding: 0; }
+  .pwfield .eye:hover { color: var(--text); background: rgba(255,255,255,.06); }
+  .pwfield .eye svg { width: 18px; height: 18px; display: block; }
+
+  /* toggle switch */
+  .switch { position: relative; display: inline-flex; align-items: center; gap: 12px; cursor: pointer; }
+  .switch input { position: absolute; left: 0; top: 0; width: 48px; height: 28px; margin: 0; opacity: 0; cursor: pointer; }
+  .track { flex: none; width: 48px; height: 28px; border-radius: 999px; background: #272b35; border: 1px solid var(--line-2); position: relative; transition: background .15s; }
+  .thumb { position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+  .switch input:disabled ~ .track { opacity: .6; }
+  .switch input:checked + .track { background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-color: transparent; }
+  .switch input:checked + .track .thumb { transform: translateX(20px); }
+  .switch input:focus-visible + .track { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .switch-text { min-width: 26px; font-size: 13px; color: var(--muted); }
+
+  /* fields that are switched off by another setting keep their value but can't be changed */
+  .row.off .row-label, .row.off .row-help, .row.off .row-control { opacity: .45; }
+  input:disabled, select:disabled { cursor: not-allowed; }
+
+  .switch input:disabled { cursor: not-allowed; }
+
+  .bar-warn { flex: 1 1 240px; min-width: 0; margin: 0; padding: 0 8px; font-size: 13.5px; line-height: 1.4; color: var(--bad); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-warn span + span { margin-left: 12px; }
+  .bar-warn[hidden] { display: none; }
+  .req.opt { color: var(--warn); border-color: rgba(242,189,98,.4); margin-left: 10px; vertical-align: middle; }
+  .row.tool { border-top: 0; padding-top: 0; }   /* part of the crop setting above it, so no divider */
+  .crop-results { display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 12px 16px; align-items: end; max-width: 760px; padding: 4px 24px 22px; }   /* one line: a portrait poster and two landscape crops, all the same height scale */
+  .crop-results figure { margin: 0; display: grid; gap: 8px; }
+  .crop-results .crop-title { grid-column: 1 / -1; margin: 0; font-weight: 600; font-size: 14px; }
+  .crop-results img { width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line-2); background: var(--field); display: block; }
+  .crop-results figcaption { font-size: 13px; color: var(--muted); }
+
+  /* buttons and chips */
+  .btn { font-weight: 600; font-size: 14px; border-radius: 999px; padding: 10px 18px; cursor: pointer; border: 1px solid var(--line-2); background: #1a1d25; color: var(--text); white-space: nowrap; }
+  .btn:hover { background: #232733; }
+  .btn.primary { background: var(--text); color: #090a0e; border-color: transparent; }
+  .btn.primary:hover { background: #fff; }
+  .btn.primary { position: relative; }
+  .btn.primary[data-dirty]::after { content: ""; position: absolute; top: 6px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  /* a purple dot after a setting's name while its value differs from the saved one */
+  .chg { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(164,147,255,.22); }
+  .btn.danger { background: transparent; color: var(--bad); border-color: rgba(255,128,120,.35); }
+  .btn.danger:hover { background: rgba(255,128,120,.1); }
+  /* Danger Zone: colours taken from the Nuvio account page */
+  .btn.delete { background: #fb2c36; color: #fff; border-color: transparent; }
+  .btn.delete:hover { background: #e7000b; }
+  .btn.delete.solid { background: #dc2626; }
+  .btn.delete.solid:hover { background: #ef4444; }
+  .btn.delete.solid:disabled { background: rgba(239,68,68,.25); color: rgba(255,255,255,.55); opacity: 1; }
+  .card.danger-zone { background: #201414; border-color: transparent; }
+  .card.danger-zone h2 { color: #ff6467; }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); display: grid; place-items: center; padding: 16px; z-index: 50; }
+  .dialog { width: min(440px, 100%); background: #14161d; border: 1px solid rgba(239,68,68,.35); border-radius: 18px; padding: 24px; display: grid; gap: 14px; }
+  .dialog h2 { font-size: 19px; margin: 0; }
+  .dialog p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .dialog .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+  .btn.small { padding: 7px 14px; font-size: 13px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 13px; border-radius: 999px; background: rgba(255,255,255,.05); border: 1px solid var(--line); color: var(--muted); }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+  .chip.ready { color: var(--ok); } .chip.ready .dot { background: var(--ok); }
+  .chip.building { color: var(--warn); } .chip.building .dot { background: var(--warn); animation: pulse 1.2s ease-in-out infinite; }
+  .chip.error { color: var(--bad); } .chip.error .dot { background: var(--bad); }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .head-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .notice { margin: 0 24px 16px; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; background: rgba(242,189,98,.1); color: var(--warn); border: 1px solid rgba(242,189,98,.25); }
+  .banner { margin-bottom: 16px; padding: 16px 20px; border-radius: 12px; background: linear-gradient(100deg, rgba(164,147,255,.16), rgba(90,169,255,.12)); border: 1px solid rgba(164,147,255,.3); }
+  .banner > strong { display: block; font-size: 16px; margin-bottom: 2px; }
+  .banner p { color: var(--muted); }
+  .result { font-size: 13.5px; line-height: 1.45; }
+  .result.ok { color: var(--ok); } .result.bad { color: var(--bad); } .result.warn { color: var(--warn); } .result.muted { color: var(--muted); }
+  .result strong { font-weight: 650; }
+
+  /* sticky save bar */
+  .savebar { position: sticky; bottom: 16px; z-index: 5; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 8px;
+             padding: 10px; border-radius: 999px; background: rgba(18,21,28,.9); backdrop-filter: blur(12px);
+             -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line-2); box-shadow: 0 14px 44px rgba(0,0,0,.5); }
+  .savebar > .btn.primary { margin-left: auto; }
+  .savebar .bar-gap { visibility: hidden; pointer-events: none; }
+  .confirm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .confirm span { font-size: 14px; }
+
+  .login { max-width: 380px; margin: 28px auto 0; padding: 26px; display: grid; gap: 14px; }
+  .login h2 { font-size: 20px; }
+
+  #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 20; background: var(--text); color: #090a0e;
+           padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  footer { padding-bottom: 30px; }
+
+  @media (max-width: 700px) {
+    .card-head > div:first-child { flex-basis: 100%; }
+    .card-head .head-right { margin-left: auto; }
+    .row { grid-template-columns: 1fr; padding: 16px 18px; }
+    .row-control.right { align-items: flex-start; }
+    .card-head { padding: 18px; } details.card > summary { padding: 18px 48px 18px 18px; }
+      .notice { margin: 0 18px 14px; }
+    .tab { padding: 9px 16px; }
+    .logout { position: static; margin-top: 14px; }
+    .savebar { border-radius: 22px; padding: 10px 12px; }
+    .crop-results { gap: 10px; padding: 4px 18px 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .track, .thumb, details.card > summary::after { transition: none; } .chip.building .dot { animation: none; } }
+</style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Nuvio <span>Watchlist</span></h1>
+      <p class="tagline">Your picks. Your home screen.</p>
+    </div>
+    <button class="logout" id="logout" hidden>Log Out</button>
+  </header>
+
+  <main class="wrap" id="app"><noscript>This page needs JavaScript.</noscript></main>
+
+  <div id="toast" hidden role="status"></div>
+  <footer></footer>
+
+<script>
+'use strict';
+const app = document.getElementById('app');
+const logoutBtn = document.getElementById('logout');
+
+// ------------------------------------------------------------------ helpers
+// **double-asterisk** words become bold; everything else stays plain text (never raw HTML)
+function richText(s) {
+  return String(s).split('**').map((part, i) => i % 2 ? h('strong', {}, part) : part);
+}
+
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === false || v == null) continue;
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k in el && !k.includes('-')) el[k] = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+  return el;
+}
+
+let lastApi = Date.now();
+async function api(path, method = 'GET', body) {
+  lastApi = Date.now();
+  const res = await fetch(path, {
+    method, credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'nuvio_watchlist' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let data = {};
+  try { data = await res.json(); } catch (e) { /* not JSON */ }
+  if (res.status === 401 && path !== '/api/login') {
+    // several requests can fail together (Save Account checks two things); only the first one draws the sign-in page, so its note stays
+    if (!app.querySelector('form.login')) showLogin(S ? 'Your session expired. Sign in again.' : '');
+    throw Object.assign(new Error('signed out'), { handled: true }); }
+  if (!res.ok) throw Object.assign(new Error(data.error || `Something went wrong (HTTP ${res.status}).`), { data });
+  return data;
+}
+
+const toastEl = document.getElementById('toast');
+let toastTimer;
+// shown centered in the current tab's save bar, wherever the page is scrolled; at the bottom of the window with no bar
+function placeToast() {
+  const bar = document.querySelector('.panel:not([hidden]) .savebar');
+  if (!bar) { toastEl.removeAttribute('style'); return; }
+  const r = bar.getBoundingClientRect();
+  const y = Math.min(Math.max(r.top + r.height / 2, 30), window.innerHeight - 30);
+  toastEl.style.cssText = `top:${y}px;left:${r.left + r.width / 2}px;bottom:auto;transform:translate(-50%,-50%)`;
+}
+function toast(text) {
+  toastEl.textContent = text; toastEl.hidden = false; placeToast();
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, 2200);
+}
+window.addEventListener('scroll', () => { if (!toastEl.hidden) placeToast(); }, { passive: true });
+window.addEventListener('resize', () => { if (!toastEl.hidden) placeToast(); });
+
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+  } catch (e) { /* fall back to a hidden text box */ }
+  const t = h('textarea', { value: text, style: 'position:fixed;top:0;left:0;opacity:0' });
+  document.body.append(t); t.focus(); t.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  t.remove();
+  return ok;
+}
+
+// ------------------------------------------------------------------ icons
+const svg = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const ICON = {
+  copy: svg('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+  check: svg('<polyline points="20 6 9 17 4 12"/>'),
+  eye: svg('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'),
+  eyeOff: svg('<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'),
+};
+
+// ------------------------------------------------------------------ state
+let S = null;                 // everything /api/state returned
+const panels = new Map();     // 'general' | profile id -> { el, dirty }
+const tabButtons = new Map();
+const statusViews = new Map(); // profile id -> { chip, notices }
+let active = null;
+let pollTimer = null;
+const watching = new Set();       // profiles whose manual refresh is running
+const refreshResults = new Map(); // profile id -> last manual refresh status, kept only until the page is reloaded or signed out
+
+// ------------------------------------------------------------------ sign in
+function showLogin(note) {
+  S = null; panels.clear(); tabButtons.clear(); statusViews.clear(); clearTimeout(pollTimer); watching.clear(); refreshResults.clear();
+  logoutBtn.hidden = true;
+  const input = h('input', { type: 'password', id: 'pw', autocomplete: 'current-password', required: true });
+  const err = h('p', { class: 'err' });
+  const form = h('form', { class: 'card login', onsubmit: async (e) => {
+    e.preventDefault(); err.textContent = '';
+    try { await api('/api/login', 'POST', { password: input.value }); boot(); }
+    catch (ex) { if (!ex.handled) err.textContent = ex.message; }
+  } },
+    h('h2', {}, 'Sign In'),
+    note ? h('p', { class: 'notice', style: 'margin: 0' }, note) : null,
+    h('p', { class: 'lead' }, 'Use the ADMIN_PASSWORD from your compose file.'),
+    h('div', {}, h('label', { for: 'pw', class: 'row-label', style: 'display:block; margin-bottom:10px' }, 'Admin Password'), input),
+    err,
+    h('button', { class: 'btn primary', type: 'submit' }, 'Sign In'));
+  app.replaceChildren(form);
+  input.focus();
+}
+logoutBtn.addEventListener('click', async () => {
+  if ([...panels.values()].some(p => p.dirty) && !confirm('You have unsaved changes. Log out and discard them?')) return;
+  try { await api('/api/logout', 'POST'); } catch (e) { /* already out */ } showLogin(); });
+
+// ------------------------------------------------------------------ forms drawn from the schema
+const hint = (text) => h('p', { class: 'range-hint' }, text);
+
+function makeForm(fields, values) {
+  const ctrls = {}, rows = {}, saved = {};
+
+  function control(f) {
+    const id = `f-${Math.random().toString(36).slice(2, 8)}-${f.key}`;
+    const v = values[f.key];
+    const describe = { 'aria-describedby': `${id}-help` };
+    if (f.kind === 'bool') {
+      const input = h('input', { type: 'checkbox', role: 'switch', id, checked: !!v, ...describe });
+      const text = h('span', { class: 'switch-text' }, input.checked ? 'On' : 'Off');
+      input.addEventListener('change', () => { text.textContent = input.checked ? 'On' : 'Off'; });
+      ctrls[f.key] = { get: () => input.checked, id, setDisabled: (d) => { input.disabled = d; },
+        set: (on) => { input.checked = on; text.textContent = on ? 'On' : 'Off'; } };
+      return h('label', { class: 'switch' }, input, h('span', { class: 'track', 'aria-hidden': 'true' }, h('span', { class: 'thumb' })), text);
+    }
+    if (f.kind === 'choice') {
+      // the Nuvio profile list is filled in from the account itself (decorateNuvioSelect), so it starts as the saved one only
+      const choices = f.key === 'NUVIO_PROFILE' ? f.choices.filter(c => c.value === String(v)) : f.choices;
+      const el = h('select', { id, ...describe }, choices.map(c => h('option', { value: c.value }, c.label)));
+      el.value = v; if (f.key === 'NUVIO_PROFILE') el.setAttribute('data-nuvio-profile', '');
+      ctrls[f.key] = { get: () => el.value, id, el, setDisabled: (d) => { el.disabled = d; } }; return el;
+    }
+    if (f.kind === 'secret') {
+      const el = h('input', { type: 'password', id, autocomplete: 'new-password', value: v || '', spellcheck: false, maxLength: f.maxlength, ...describe });
+      const eye = h('button', { type: 'button', class: 'eye', 'data-ignore': '', innerHTML: ICON.eye, title: 'Show', 'aria-label': `Show ${f.label}`, 'aria-pressed': 'false' });
+      eye.addEventListener('click', () => {
+        const show = el.type === 'password';
+        el.type = show ? 'text' : 'password';
+        eye.innerHTML = show ? ICON.eyeOff : ICON.eye;
+        eye.title = show ? 'Hide' : 'Show'; eye.setAttribute('aria-label', `${show ? 'Hide' : 'Show'} ${f.label}`); eye.setAttribute('aria-pressed', String(show));
+      });
+      ctrls[f.key] = { get: () => el.value, id, input: el };   // empty clears it
+      return h('div', { class: 'pwfield' }, el, eye);
+    }
+    if (f.kind === 'int') {   // digits only, no leading zero, never above the maximum while typing, never below the minimum once left
+      const el = h('input', { type: 'text', inputMode: 'numeric', id, value: v, autocomplete: 'off', ...describe });
+      ctrls[f.key] = { get: () => el.value, id, setDisabled: (d) => { el.disabled = d; } };
+      el.addEventListener('input', () => {
+        let clean = el.value.replace(/\D/g, '').replace(/^0+/, '');
+        if (f.max != null && clean !== '' && Number(clean) > f.max) clean = String(f.max);
+        if (clean !== el.value) el.value = clean;
+      });
+      el.addEventListener('blur', () => {
+        const next = el.value === '' ? String(f.default) : (f.min != null && Number(el.value) < f.min ? String(f.min) : el.value);
+        if (next !== el.value) { el.value = next; el.dispatchEvent(new Event('input', { bubbles: true })); }
+      });
+      el.addEventListener('keydown', (e) => {   // a leading zero is refused before it appears
+        if (e.key === '0' && el.selectionStart === 0 && el.selectionEnd === 0 && !e.ctrlKey && !e.metaKey) e.preventDefault();
+      });
+      const note = f.display === 'duration' ? h('span', { class: 'unit duration' }) : (f.unit ? h('span', { class: 'unit' }, f.unit) : null);
+      if (f.display === 'duration') {
+        const update = () => {
+          const n = Number(el.value);
+          note.textContent = el.value !== '' && Number.isInteger(n) && n >= (f.min || 0) && n <= (f.max || Infinity) ? `(${fmtDuration(n)})` : '';
+        };
+        el.addEventListener('input', update); update();
+      }
+      const line = h('div', { class: 'control-line' }, note ? h('div', { class: 'suffixed' + (f.display === 'duration' ? ' wide' : '') }, el, note) : el);
+      return h('div', {}, line, hint(`Min ${f.min.toLocaleString('en-US')} – Max ${f.max.toLocaleString('en-US')}`));
+    }
+    const el = h('input', { type: 'text', id, value: v, autocomplete: 'off', placeholder: f.placeholder || false, class: f.short ? 'short' : false, maxLength: f.maxlength || false, ...describe });
+    ctrls[f.key] = { get: () => el.value, id, setDisabled: (d) => { el.disabled = d; } };
+    if (f.language) {   // two lowercase letters; a listed code shows its language below the box, anything else shows nothing
+      const names = S.schema.languages || {};
+      const name = hint('');
+      name.style.minHeight = '15px';
+      const show = () => { name.textContent = names[el.value] || ''; };
+      el.addEventListener('input', () => {
+        const clean = el.value.toLowerCase().replace(/[^a-z]/g, '').slice(0, 2);
+        if (clean !== el.value) el.value = clean;
+        show();
+      });
+      show();
+      return h('div', {}, h('div', { class: 'control-line' }, el), name);
+    }
+    return el;
+  }
+
+  function row(f, extra) {
+    const ctl = control(f);
+    const id = ctrls[f.key].id;
+    const err = h('p', { class: 'err' });
+    const dot = h('span', { class: 'chg', title: 'Changed', hidden: true });
+    const node = h('div', { class: 'row' + (f.badge ? ' has-badge' : '') },
+      h('div', {},
+        h('label', { class: 'row-label', for: id }, f.label, dot, f.required ? h('span', { class: 'req' }, 'Required') : null, f.badge ? h('span', { class: 'req' }, f.badge) : null),
+        h('p', { class: 'row-help', id: `${id}-help` }, richText(f.help))),
+      h('div', { class: 'row-control' + (f.kind === 'bool' ? ' right' : '') }, ctl, ...(extra || []), err));
+    rows[f.key] = { node, err, dot, help: node.querySelector('.row-help') };
+    return node;
+  }
+
+  return {
+    row,
+    collect() {
+      const out = {};
+      for (const f of fields) { const x = ctrls[f.key] && ctrls[f.key].get(); if (x !== undefined) out[f.key] = x; }
+      return out;
+    },
+    clearErrors() { for (const r of Object.values(rows)) { r.err.textContent = ''; r.node.classList.remove('invalid'); } },
+    showErrors(errors) {
+      let first = null;
+      for (const [k, msg] of Object.entries(errors)) {
+        const r = rows[k]; if (!r) continue;
+        r.err.textContent = msg; r.node.classList.add('invalid');
+        const d = r.node.closest('details'); if (d) d.open = true;
+        first = first || r.node;
+      }
+      return first;
+    },
+    ctrls,
+    // what each setting held when the form was drawn (its saved value); markChanges() then dots the ones that differ
+    captureSaved() { for (const f of fields) if (ctrls[f.key]) saved[f.key] = JSON.stringify(ctrls[f.key].get()); },
+    markChanges() {
+      for (const f of fields) if (ctrls[f.key] && rows[f.key]) rows[f.key].dot.hidden = JSON.stringify(ctrls[f.key].get()) === saved[f.key];
+    },
+    applyDepends() {
+      for (const f of fields) {
+        if (f.shows_when && rows[f.key]) {   // hidden, not cleared: the saved value is kept and still sent
+          const hidden = f.shows_when.some(d => { const c = ctrls[d.key]; return c && c.get() !== d.value; });
+          rows[f.key].node.hidden = hidden;
+        }
+        if (f.help_alt && rows[f.key]) {   // the description follows another setting
+          const alt = ctrls[f.help_alt.when.key] && ctrls[f.help_alt.when.key].get() === f.help_alt.when.value;
+          rows[f.key].help.replaceChildren(richText(alt ? f.help_alt.text : f.help));
+        }
+        if (!f.depends && !f.needs_key) continue;
+        const off = (f.depends || []).some(d => { const c = ctrls[d.key]; return c && c.get() !== d.value; });
+        const locked = !!f.needs_key && !tmdbKeyTyped();   // no TMDB key: the TMDB section is locked, its values are kept
+        if (ctrls[f.key] && ctrls[f.key].setDisabled) ctrls[f.key].setDisabled(off || locked);
+        if (off && f.clears_when_off && ctrls[f.key] && ctrls[f.key].set) ctrls[f.key].set(f.default);   // can't be on without what it needs
+        if (rows[f.key]) rows[f.key].node.classList.toggle('off', off || locked);
+      }
+    },
+  };
+}
+
+const countProfiles = (n) => `${n} profile${n === 1 ? '' : 's'}`;
+const signInText = (n) => n ? `Sign in successful. ${countProfiles(n)} found.` : 'Sign in successful.';
+
+function fmtDuration(total) {
+  const parts = [['d', Math.floor(total / 86400)], ['h', Math.floor(total % 86400 / 3600)], ['m', Math.floor(total % 3600 / 60)], ['s', total % 60]];
+  const first = parts.findIndex(p => p[1] > 0);
+  if (first < 0) return '0s';
+  let last = 3; while (last > first && parts[last][1] === 0) last--;
+  last = Math.max(last, Math.min(first + 1, 3));   // always at least two units, like 12h 0m
+  return parts.slice(first, last + 1).map(p => `${p[1]}${p[0]}`).join(' ');
+}
+
+// ------------------------------------------------------------------ shared pieces
+function copyField(value, label) {
+  const input = h('input', { type: 'text', readOnly: true, value, title: value, 'aria-label': label });
+  const btn = h('button', { type: 'button', class: 'iconbtn', innerHTML: ICON.copy, title: 'Copy link', 'aria-label': 'Copy link' });
+  const copy = async () => {
+    input.select();
+    const ok = await copyText(value);
+    toast(ok ? 'Link copied' : 'Press Ctrl+C to copy the selected link');
+    if (ok) { btn.innerHTML = ICON.check; setTimeout(() => { btn.innerHTML = ICON.copy; }, 1600); }
+  };
+  btn.addEventListener('click', copy);
+  return h('div', { class: 'copyfield' }, input, btn);
+}
+
+function resultNode() {
+  const node = h('p', { class: 'result', 'aria-live': 'polite' });
+  node.show = (kind, ...kids) => { node.className = `result ${kind}`; node.replaceChildren(...kids); };
+  node.clear = () => { node.className = 'result'; node.replaceChildren(); };
+  return node;
+}
+
+// The status chip appears only after Refresh Catalog is pressed, and shows that attempt: [css class, text].
+function statusView(st) {
+  const titles = (n) => `${n} ${n === 1 ? 'Title' : 'Titles'}`;
+  if (st.state === 'error') return ['error', `Could Not Load: ${st.error || 'unknown error'}`];
+  if (st.state === 'ready' && !st.refreshing && st.error) return ['error', `Could Not Refresh: ${st.error}`];
+  if (st.state === 'ready' && !st.refreshing) return ['ready', st.items != null ? `Refreshed · ${titles(st.items)}` : 'Refreshed'];
+  return ['building', 'Refreshing Catalog'];
+}
+
+function applyStatus(id, st) {
+  refreshResults.set(id, st);
+  if (st.cache && cacheViews.has(id)) cacheViews.get(id)(st.cache, st.caching);   // follows the downloads as they arrive
+  if (cropViews.has(id)) cropViews.get(id)(st.crops);
+  const view = statusViews.get(id); if (!view) return;
+  const [kind, text] = statusView(st);
+  view.chip.hidden = false;
+  view.chip.className = `chip ${kind}`;
+  view.chip.replaceChildren(h('span', { class: 'dot' }), text);
+  const notes = [...(st.warnings || [])];
+  if (kind === 'error' && st.state === 'ready' && st.items != null)
+    notes.push(`Still serving the ${st.items} title${st.items === 1 ? '' : 's'} from the last successful refresh.`);
+  view.notices.replaceChildren(...notes.map(n => h('p', { class: 'notice' }, n)));
+}
+
+// follows the manual refreshes that are running, until each one finishes
+function schedulePoll(delay = 1000) {
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(async () => {
+    let data; try { data = await api('/api/status'); } catch (e) { return; }
+    let busy = false;
+    for (const id of [...watching]) {
+      const st = data.profiles[id];
+      if (!st) { watching.delete(id); continue; }
+      applyStatus(id, st);
+      if (st.state === 'building' || st.refreshing || st.caching) busy = true; else watching.delete(id);
+    }
+    if (busy) schedulePoll(1000);
+  }, delay);
+}
+
+// Save is always available; a purple dot on it shows while there are unsaved changes.
+function savebar({ onSave, extra, label }) {
+  const saveBtn = h('button', { type: 'button', class: 'btn primary', onclick: onSave }, label);
+  const bar = h('div', { class: 'savebar' }, ...(extra ? [extra] : []), saveBtn);
+  bar.setDirty = (dirty) => { saveBtn.toggleAttribute('data-dirty', !!dirty); };
+  // warnings sit above the buttons, one per thing that needs attention, and are cleared by name
+  const warn = h('p', { class: 'bar-warn', role: 'alert', hidden: true }), notes = new Map();
+  saveBtn.before(warn);   // fills the bar from the left button to Save
+  const draw = () => { warn.replaceChildren(...[...notes.values()].map(t => h('span', {}, t))); warn.title = [...notes.values()].join(' '); warn.hidden = !notes.size; };
+  bar.setWarn = (name, text) => { notes.set(name, text); draw(); };
+  bar.clearWarn = (name) => { if (notes.delete(name)) draw(); };
+  bar.saveBtn = saveBtn;
+  return bar;
+}
+
+// The first successful Validate Login also saves the login on the server, so the + tab opens up without a separate save.
+// Whatever else was typed on the Account tab (the TMDB key) stays as typed and unsaved.
+async function loginKept(form) {
+  const tmdb = form.ctrls.TMDB_API_KEY.get();
+  S = await api('/api/state');
+  const fresh = buildGeneral();
+  replacePanel('general', fresh, rememberOpen(panels.get('general').el));
+  const field = fresh.form.ctrls.TMDB_API_KEY.input;
+  if (tmdb !== field.value) { field.value = tmdb; field.dispatchEvent(new Event('input', { bubbles: true })); }
+  fresh.hidden = false;
+  renderTabs(); showTmdbNotices(); refreshNuvioNames();
+}
+
+function rememberOpen(el) { return [...el.querySelectorAll('details')].map(d => d.open); }
+function restoreOpen(el, flags) { el.querySelectorAll('details').forEach((d, i) => { if (flags && flags[i] != null) d.open = flags[i]; }); }
+
+// ------------------------------------------------------------------ Danger Zone
+function confirmDeleteAccount() {
+  const input = h('input', { type: 'text', autocomplete: 'off', spellcheck: false, placeholder: 'DELETE', 'aria-label': 'Type DELETE to confirm', 'data-ignore': '' });
+  const err = h('p', { class: 'err' });
+  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const go = h('button', { type: 'button', class: 'btn delete solid', disabled: true, onclick: async () => {
+    go.disabled = true; err.textContent = '';
+    try {
+      await api('/api/account', 'DELETE', { confirm: input.value });
+      close(); history.replaceState(null, '', location.pathname); showLogin('Your account and all stored data were deleted.');
+    } catch (e) { if (!e.handled) err.textContent = e.message; go.disabled = input.value !== 'DELETE'; }
+  } }, 'Delete Account');
+  input.addEventListener('input', () => { go.disabled = input.value !== 'DELETE'; });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !go.disabled) go.click(); });
+  const overlay = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'del-title',
+      onmousedown: (e) => { if (e.target === overlay) close(); } },
+    h('div', { class: 'dialog' },
+      h('h2', { id: 'del-title' }, 'Delete your account?'),
+      h('p', {}, 'This permanently deletes your account settings, every profile and its add-on link, cached artwork and everything else stored in this add-on’s data volume. Your Nuvio account is not affected. This cannot be undone.'),
+      h('p', {}, 'Type DELETE to confirm.'),
+      input, err,
+      h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: close }, 'Cancel'), go)));
+  document.addEventListener('keydown', onKey);
+  document.body.append(overlay);
+  input.focus();
+}
+
+// Validates what is typed on the Account tab, then saves it. Warnings go in `bar`; returns true once it is saved.
+async function saveAccountTab(bar) {
+  const el = panels.get('general').el, form = el.form;
+  form.clearErrors();
+  for (const n of ['nuvio', 'tmdb', 'account']) bar.clearWarn(n);
+  try {
+    const bad = await el.validateTyped();
+    for (const b of bad) bar.setWarn(b.name, b.failure);
+    if (bad.length) return false;
+    await api('/api/general', 'PUT', { settings: form.collect() });
+    const open = rememberOpen(el);
+    S = await api('/api/state');
+    replacePanel('general', buildGeneral(), open);
+    addMissingPanels();   // the first save creates Profile 1
+    renderTabs(); showTmdbNotices(); refreshNuvioNames();
+    panels.forEach(pn => pn.el.bar && pn.el.bar.clearWarn('account'));
+    return true;
+  } catch (e) {
+    if (e.handled) return false;
+    const errors = e.data && e.data.errors;
+    const first = errors ? form.showErrors(errors) : null;
+    if (!first) bar.setWarn('account', errors ? Object.values(errors).join(' ') : e.message);
+    else first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return false;
+  }
+}
+
+// ------------------------------------------------------------------ Account tab (internally 'general')
+function buildGeneral() {
+  const schema = S.schema.general;
+  const form = makeForm(schema.fields, S.general);
+  const el = h('section', { class: 'panel', id: 'panel-general', role: 'tabpanel', 'aria-labelledby': 'tab-general' });
+
+  if (!S.general_ready) {
+    el.append(h('div', { class: 'banner' }, h('strong', {}, 'Start Here'),
+      h('p', {}, ...richText('Enter your Nuvio email and password, then select **Validate Login**. Add profiles with the + tab. Optionally, add a TMDB API key for additional artwork features. On a profile tab, **Refresh Catalog** pulls your latest Nuvio Library and rebuilds the catalog right away; saving only saves your settings.'))));
+  }
+
+  // A "Validate" button that stays off once it has passed, until one of its fields changes.
+  const refreshers = [], verifiers = [];
+  const has = (k) => !!form.ctrls[k].get();
+  function makeVerifier({ name, keys, label, url, wasVerified, ready, body, okText, restoredText, onOk }) {
+    const out = resultNode();
+    const sig = () => JSON.stringify(keys.map(k => { const v = form.ctrls[k].get(); return v === undefined ? null : v; }));
+    let verifiedSig = null, okMsg = null, failedSig = null, lastSig = null, failure = '';
+    const refresh = () => { btn.disabled = verifiedSig === sig() || !ready(); };
+    // The button and Save Account both come through here. Save passes quiet, which leaves the follow-up of a
+    // first sign-in (opening the + tab) to the save itself.
+    const run = async (quiet) => {
+      const sent = sig();
+      btn.disabled = true; out.clear();   // nothing is shown while it runs, only the result
+      let ok = false;
+      try {
+        const r = await api(url, 'POST', body());
+        if (r.ok) {
+          ok = true; verifiedSig = sent; failedSig = null; okMsg = okText(r); out.show('ok', h('strong', {}, okMsg));
+          S.verified[name] = true;
+          if (onOk && !quiet) onOk(r);
+        } else { failure = r.error; failedSig = sent; if (quiet) out.clear(); else out.show('bad', r.error); }   // a save shows its failure in the bar only
+      } catch (e) { if (!e.handled) { failure = e.message; failedSig = sent; if (quiet) out.clear(); else out.show('bad', e.message); } }
+      refresh();
+      return ok;
+    };
+    const btn = h('button', { type: 'button', class: 'btn small', onclick: () => run(false) }, label);
+    refreshers.push(() => {
+      if (failedSig !== null) { if (failedSig !== sig()) out.clear(); }   // an error stays until its own box changes
+      else if (verifiedSig !== sig()) out.clear(); else if (!out.textContent) out.show('ok', h('strong', {}, okMsg));  // changed back to what passed
+      if (lastSig !== null && sig() !== lastSig) {   // an edit takes the warning away, here and on the profile tabs
+        lastSig = sig(); failedSig = null;
+        bar.clearWarn(name); panels.forEach(pn => { if (pn.el.bar) pn.el.bar.clearWarn(name); });
+      }
+      refresh();
+    });
+    // Save Account (and any profile's save): checks what is typed in these boxes once, then not again until they change.
+    // Returns null when saving may go on, otherwise what to tell the user.
+    const check = async () => {
+      if (!ready() || verifiedSig === sig()) return null;   // nothing entered (the server asks for what is required), or already passed
+      if (await run(true)) return null;
+      return { name, failure };
+    };
+    verifiers.push({ check });
+    // the field itself only exists once its row is built, so the starting state is set afterwards
+    const start = () => { lastSig = sig(); if (wasVerified) { verifiedSig = sig(); okMsg = restoredText(); out.show('ok', h('strong', {}, okMsg)); } refresh(); };
+    return { nodes: [h('div', { class: 'control-line' }, btn), out], start };
+  }
+
+  for (const g of schema.groups) {
+    const card = h('section', { class: 'card' },
+      h('div', { class: 'card-head' }, h('div', {}, h('h2', {}, g.title, g.badge ? h('span', { class: 'req opt' }, g.badge) : null), h('p', { class: 'lead' }, g.help))));
+    for (const f of schema.fields.filter(x => x.group === g.id)) {
+      let extra = [], verifier = null;
+      if (f.key === 'NUVIO_PASSWORD') {
+        verifier = makeVerifier({
+          name: 'nuvio', keys: ['NUVIO_EMAIL', 'NUVIO_PASSWORD'], label: 'Validate Login',
+          url: '/api/nuvio/verify', wasVerified: S.verified.nuvio,
+          ready: () => has('NUVIO_EMAIL') && has('NUVIO_PASSWORD'),
+          body: () => ({ NUVIO_EMAIL: form.ctrls.NUVIO_EMAIL.get(), NUVIO_PASSWORD: form.ctrls.NUVIO_PASSWORD.get() }),
+          okText: (r) => signInText(r.profiles), restoredText: () => signInText(S.nuvio_profile_count),
+          onOk: async (r) => { if (r.saved) await loginKept(form); } });
+      } else if (f.key === 'TMDB_API_KEY') {
+        verifier = makeVerifier({
+          name: 'tmdb', keys: ['TMDB_API_KEY'], label: 'Validate Key', url: '/api/tmdb/verify',
+          wasVerified: S.verified.tmdb, ready: () => has('TMDB_API_KEY'),
+          body: () => ({ key: form.ctrls.TMDB_API_KEY.get() }),
+          okText: () => 'TMDB accepted this key.', restoredText: () => 'TMDB accepted this key.' });
+      }
+      card.append(form.row(f, verifier ? verifier.nodes : extra));
+      if (verifier) verifier.start();
+    }
+    if (g.id === 'danger') {
+      card.classList.add('danger-zone');
+      card.querySelector('.card-head').append(h('button', { type: 'button', class: 'btn delete', onclick: confirmDeleteAccount }, 'Delete Account'));
+    }
+    el.append(card);
+  }
+
+  // the same space a profile tab gives its Delete Profile button, so the warning starts at the same spot on every tab
+  const bar = savebar({ label: 'Save Account', extra: h('button', { type: 'button', class: 'btn danger bar-gap', tabIndex: -1, 'aria-hidden': 'true' }, 'Delete Profile'), onSave: async () => {
+    bar.saveBtn.disabled = true;
+    if (await saveAccountTab(bar)) toast('Account details saved'); else bar.saveBtn.disabled = false;
+  } });
+  el.append(bar);
+  // "unsaved changes" means the values differ from what was saved, so autofill or retyping the same value doesn't count
+  form.captureSaved();
+  const snap = () => JSON.stringify(schema.fields.map(f => { const v = form.ctrls[f.key].get(); return v === undefined ? null : v; }));
+  const saved = snap();
+  const touched = () => { markDirty('general', snap() !== saved); form.markChanges(); refreshers.forEach(r => r()); showTmdbNotices(); panels.forEach(pn => pn.el.bar && pn.el.bar.clearWarn('account')); };
+  el.addEventListener('input', touched);
+  el.addEventListener('change', touched);
+  el.bar = bar;
+  el.form = form;   // the crop preview reads the TMDB key as currently typed here
+  el.validateTyped = async () => { const bad = []; for (const v of verifiers) { const b = await v.check(); if (b) bad.push(b); } return bad; };
+  return el;
+}
+
+// ------------------------------------------------------------------ Profile tab
+// The profiles in the Nuvio account (number and name), so the dropdown lists exactly the ones that exist, like "1 - Kids".
+let nuvioNamesPromise = null;
+function nuvioNames() {
+  if (!S.general_ready) return Promise.resolve({ ok: false, error: 'Validate your Nuvio login on the Account tab first.' });
+  if (!nuvioNamesPromise) nuvioNamesPromise = api('/api/nuvio/profiles').catch(e => ({ ok: false, error: e.message }));
+  return nuvioNamesPromise;
+}
+function decorateNuvioSelect(select, result) {
+  if (!result || !result.ok) return;   // Nuvio couldn't be asked: keep what is there
+  const current = select.value;
+  const opts = result.profiles.map(p => h('option', { value: String(p.number) }, `${p.number} - ${p.name}`));
+  if (!result.profiles.some(p => String(p.number) === current))   // the saved profile is gone from Nuvio: keep it visible until another is picked
+    opts.unshift(h('option', { value: current }, `${current} - Not found`));
+  select.replaceChildren(...opts);
+  select.value = current;
+}
+function applyNuvioNames(result) {
+  document.querySelectorAll('select[data-nuvio-profile]').forEach(s => decorateNuvioSelect(s, result));
+}
+function refreshNuvioNames() {
+  nuvioNamesPromise = null;
+  return nuvioNames().then(result => { applyNuvioNames(result); return result; });
+}
+
+// Cuts one title's poster the way this add-on does and the way Nuvio does, so the two can be compared.
+function cropTool() {
+  const input = h('input', { type: 'text', id: 'crop-id', value: S.server.sample_tmdb_id, autocomplete: 'off', 'data-ignore': '',
+    'data-needs-key': '', disabled: !tmdbKeyTyped(), 'aria-label': 'IMDb id, TMDB id or TMDB link' });
+  const out = resultNode();
+  const original = h('img', { alt: 'Original poster' }), ours = h('img', { alt: 'Poster cropped by this add-on' }), theirs = h('img', { alt: 'Poster cropped from the centre' });
+  const title = h('p', { class: 'crop-title' });
+  const results = h('div', { class: 'crop-results', hidden: true }, title,
+    h('figure', {}, original, h('figcaption', {}, 'Original Poster')),
+    h('figure', {}, ours, h('figcaption', {}, 'Poster-Focused Crop')),
+    h('figure', {}, theirs, h('figcaption', {}, 'Default Centre Crop')));
+  const run = async () => {
+    btn.disabled = true; results.hidden = true; out.show('muted', 'Fetching the poster and cutting it');
+    try {
+      const account = panels.get('general');
+      const typed = account && account.el.form ? account.el.form.ctrls.TMDB_API_KEY.get() : '';   // the key in the Account tab, saved or not
+      const r = await api('/api/crop-test', 'POST', { id: input.value, key: typed || '' });
+      if (r.ok) { original.src = r.poster; ours.src = r.smart; theirs.src = r.centre; title.textContent = r.title; results.hidden = false; out.clear(); }
+      else out.show('bad', r.error);
+    } catch (e) { if (!e.handled) out.show('bad', e.message); }
+    btn.disabled = false;
+  };
+  const btn = h('button', { type: 'button', class: 'btn small', 'data-ignore': '', 'data-needs-key': '', disabled: !tmdbKeyTyped(), onclick: run }, 'Compare');
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); run(); } });
+  const row = h('div', { class: 'row tool' },
+    h('div', {}, h('label', { class: 'row-label', for: 'crop-id' }, 'Crop Preview'),
+      h('p', { class: 'row-help' }, 'Compares both crops of a single title. Accepts an IMDb ID (tt…), a TMDB ID or a TMDB URL. Requires a TMDB API key.')),
+    h('div', { class: 'row-control' }, input, h('div', { class: 'control-line' }, btn), out));
+  return [row, results];
+}
+
+// ------------------------------------------------------------------ Cache Storage
+const cropViews = new Map();    // profile id -> redraws the cropped-titles bubble on the crop setting
+const cacheViews = new Map();   // profile id -> redraws that profile's cache table, called by applyStatus as downloads arrive
+const fmtBytes = (n) => n >= 1048576 ? `${(n / 1048576).toFixed(n >= 10485760 ? 0 : 1)} MB` : n >= 1024 ? `${Math.round(n / 1024)} KB` : `${n} B`;
+
+// What the profile has downloaded: portrait posters, landscape images, landscape images cropped from posters, and the size of it all.
+function cacheTable() {
+  const lines = [['Portrait Images', 'portrait'], ['Landscape Images', 'landscape'], ['Cropped Landscape Images', 'crops'], ['Total Size', 'bytes']];
+  const values = {};
+  const pill = h('span', { class: 'chip building cs-pill', hidden: true }, h('span', { class: 'dot' }), 'Updating');
+  const node = h('div', { class: 'cache-status', role: 'table', 'aria-label': 'Cache Storage' },
+    ...lines.map(([label, key]) => h('div', { class: 'cs-row', role: 'row' },
+      h('span', { class: 'cs-label', role: 'cell' }, label, key === 'bytes' ? pill : null),
+      values[key] = h('span', { class: 'cs-value', role: 'cell' }, '0'))));
+  const update = (c, updating) => {
+    c = c || {};
+    for (const [, key] of lines) values[key].textContent = key === 'bytes' ? fmtBytes(c.bytes || 0) : (c[key] || 0).toLocaleString('en-US');
+    pill.hidden = !updating;
+  };
+  return { node, update };
+}
+
+function confirmClearCache(p, onDone) {
+  const err = h('p', { class: 'err' });
+  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const go = h('button', { type: 'button', class: 'btn delete solid', onclick: async () => {
+    go.disabled = true; err.textContent = '';
+    try { const r = await api(`/api/profiles/${p.id}/clear-cache`, 'POST'); close(); onDone(r); }
+    catch (e) { if (!e.handled) err.textContent = e.message; go.disabled = false; }
+  } }, 'Delete');
+  const overlay = h('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'cc-title',
+      onmousedown: (e) => { if (e.target === overlay) close(); } },
+    h('div', { class: 'dialog' },
+      h('h2', { id: 'cc-title' }, 'Delete cached artwork?'),
+      h('p', {}, 'This deletes every image this profile has downloaded to this server (posters, landscape images and cropped landscape images). They are downloaded again as Nuvio asks for them while Cache Posters or Cache Landscape Images is on. This cannot be undone.'),
+      err,
+      h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: close }, 'Cancel'), go)));
+  document.addEventListener('keydown', onKey);
+  document.body.append(overlay);
+}
+
+function cacheStatusRow(p) {
+  const table = cacheTable();
+  const out = resultNode();
+  let hideTimer = null;
+  table.update((p.status || {}).cache, (p.status || {}).caching);
+  cacheViews.set(p.id, table.update);
+  const btn = h('button', { type: 'button', class: 'btn delete small', 'data-ignore': '', onclick: () => confirmClearCache(p, (r) => {
+    table.update(r.cache);   // back to zero together with the message
+    if (r.files) out.show('ok', `Deleted ${r.files} ${r.files === 1 ? 'image' : 'images'} (${fmtBytes(r.bytes)})`); else out.show('warn', 'Nothing to delete.');
+    clearTimeout(hideTimer); hideTimer = setTimeout(() => out.clear(), 6000);
+  }) }, 'Delete Cache');
+  return h('details', { class: 'fold' },
+    h('summary', {}, h('label', { class: 'row-label' }, 'Cache Storage'),
+      h('p', { class: 'row-help' }, richText('Shows the images cached for this profile and their total size on disk. **Delete Cache** clears the entire cache, and images are re-downloaded on demand.'))),
+    h('div', { class: 'sub-body' }, table.node, h('div', { class: 'row-control' }, h('div', { class: 'control-line' }, btn), out)));
+}
+
+// An orange bubble under the crop setting's description: how many titles currently use a cropped landscape image.
+function cropBubble(p, row) {
+  const bubble = h('div', { class: 'crop-count', hidden: true }, h('span', { class: 'req opt', style: 'margin:0' }));
+  const update = (n) => {
+    bubble.hidden = !n;
+    if (n) bubble.firstChild.textContent = `${n.toLocaleString('en-US')} ${n === 1 ? 'title in this catalog uses' : 'titles in this catalog use'} a cropped landscape image`;
+  };
+  row.querySelector('.row-help').after(bubble);
+  cropViews.set(p.id, update);
+  update((p.status || {}).crops);
+}
+
+function buildProfile(p) {
+  const schema = S.schema.profile;
+  const form = makeForm(schema.fields, p.settings);
+  const el = h('section', { class: 'panel', id: `panel-${p.id}`, role: 'tabpanel', 'aria-labelledby': `tab-${p.id}` });
+
+  // --- Profile: name, id, number, status
+  const nameInput = h('input', { type: 'text', id: `name-${p.id}`, value: p.label, placeholder: `Profile ${p.number}`, autocomplete: 'off', maxLength: S.server.label_max });
+  const nameErr = h('p', { class: 'err' });
+  const nameDot = h('span', { class: 'chg', title: 'Changed', hidden: true });
+  const chip = h('span', { class: 'chip', hidden: true });
+  const notices = h('div', {});
+  statusViews.set(p.id, { chip, notices });
+  const refreshBtn = h('button', { type: 'button', class: 'btn small', onclick: async () => {
+    for (const n of ['account', 'profile']) bar.clearWarn(n);
+    if (panels.get('general').dirty) { bar.setWarn('account', 'The Account tab still has unsaved changes. Save them first.'); return; }
+    if (panels.get(p.id).dirty) { bar.setWarn('profile', 'This profile has unsaved changes. Save them first.'); return; }
+    refreshBtn.disabled = true;
+    try { await api(`/api/profiles/${p.id}/rebuild`, 'POST'); toast('Refreshing the catalog'); watching.add(p.id); applyStatus(p.id, { state: 'building' }); schedulePoll(800); }
+    catch (e) { if (!e.handled) toast(e.message); }
+    refreshBtn.disabled = false;
+  } }, 'Refresh Catalog');
+  // the dropdown lists the profiles Nuvio has; Refresh asks Nuvio again, for when profiles were changed while setting up
+  const profilesOut = resultNode();
+  const profilesBtn = h('button', { type: 'button', class: 'btn small', 'data-ignore': '', onclick: async () => {
+    profilesBtn.disabled = true; profilesOut.show('muted', 'Asking Nuvio');
+    const r = await refreshNuvioNames();
+    if (r.ok) profilesOut.show('ok', `${countProfiles(r.profiles.length)} found.`);
+    else profilesOut.show('bad', r.error);
+    profilesBtn.disabled = false;
+  } }, 'Refresh');
+  const profileRow = form.row(schema.fields.find(f => f.key === 'NUVIO_PROFILE'),
+    [h('div', { class: 'control-line' }, profilesBtn), profilesOut]);
+  nuvioNames().then(result => decorateNuvioSelect(form.ctrls.NUVIO_PROFILE.el, result));
+  el.append(h('section', { class: 'card' },
+    h('div', { class: 'card-head' }, h('div', {}, h('h2', {}, 'Profile'),
+      h('p', { class: 'lead' }, ...richText('**Refresh Catalog** pulls your latest Nuvio Library right away. Saving only saves your settings, and the catalog picks them up at its next refresh.'))),
+      h('div', { class: 'head-right' }, chip, refreshBtn)),
+    notices,
+    h('div', { class: 'row' },
+      h('div', {}, h('label', { class: 'row-label', for: `name-${p.id}` }, 'Profile Name', nameDot),
+        h('p', { class: 'row-help' }, 'Only used to tell your profiles apart in this add-on.')),
+      h('div', { class: 'row-control' }, nameInput, nameErr)),
+    profileRow));
+
+  // --- Add to Nuvio
+  const out = resultNode();
+  const installBtn = h('button', { type: 'button', class: 'btn primary', onclick: async () => {
+    const general = panels.get('general');
+    if (general && general.dirty) { out.show('bad', 'The Account tab still has unsaved changes. Save them first.'); return; }
+    if (panels.get(p.id) && panels.get(p.id).dirty) { out.show('bad', 'This profile has unsaved changes. Save them first.'); return; }
+    installBtn.disabled = true; installBtn.textContent = 'Installing'; out.show('muted', 'Signing in to Nuvio and adding the link');
+    try {
+      const r = await api(`/api/profiles/${p.id}/install`, 'POST');
+      if (!r.ok) out.show('bad', r.error);
+      else if (r.result === 'already') out.show('ok', h('strong', {}, `Already in Nuvio profile ${r.number}.`), ' This link is in that profile’s add-ons, so nothing was changed.');
+      else out.show('ok', h('strong', {}, `Added to Nuvio profile ${r.number}.`),
+        ' Nuvio picks it up the next time you open the app. To see it straight away, open Settings, then Add-ons, and choose Refresh Addons.');
+    } catch (e) { if (!e.handled) out.show('bad', e.message); }
+    installBtn.disabled = false; installBtn.textContent = 'Install to Nuvio';
+  } }, 'Install to Nuvio');
+  const installCard = h('section', { class: 'card' },
+    h('div', { class: 'card-head' }, h('div', {}, h('h2', {}, 'Add to Nuvio'),
+      h('p', { class: 'lead' }, 'Make sure your changes are saved, then paste the link into Nuvio yourself or have this page add it for you.'))),
+    h('div', { class: 'row' },
+      h('div', {}, h('label', { class: 'row-label', for: `uuid-${p.id}` }, 'Profile ID'),
+        h('p', { class: 'row-help' }, 'Makes this profile’s add-on link unique. It is set when the profile is created and can’t be changed.')),
+      h('div', { class: 'row-control mono' }, h('input', { type: 'text', id: `uuid-${p.id}`, readOnly: true, value: p.id }))),
+    h('div', { class: 'row stacked' },
+      h('div', {}, h('label', { class: 'row-label' }, 'Install URL'),
+        h('p', { class: 'row-help' }, 'The domain is pulled directly from the HOST_NAME variable (or from this page’s address if it isn’t set).')),
+      h('div', { class: 'row-control' }, copyField(p.install_url, `Install URL for ${p.label}`))));
+  if (S.url_warning) installCard.append(h('p', { class: 'notice' }, S.url_warning));
+  const installHelp = h('p', { class: 'row-help' }, 'Existing add-ons remain unchanged.');
+  installCard.append(h('div', { class: 'row' },
+    h('div', {}, h('p', { class: 'row-label' }, 'Install Automatically'), installHelp),
+    h('div', { class: 'row-control' }, h('div', { class: 'control-line' }, installBtn)),
+    h('div', { class: 'install-result' }, out)));
+
+  // --- settings sections
+  const openByDefault = new Set();   // every category starts collapsed
+  for (const g of schema.groups) {
+    const card = h('details', { class: 'card', open: openByDefault.has(g.id) },
+      h('summary', {}, h('h2', {}, g.title), h('p', { class: 'lead' }, g.help), g.note ? h('p', { class: 'lead-note' }, g.note) : null));
+    if (g.id === 'tmdb')   // shown or hidden by showTmdbNotices(), which also runs when the Account tab is saved
+      card.append(h('p', { class: 'notice tmdb-notice', style: 'margin-top:0', hidden: tmdbKeyTyped() },
+        'There is no TMDB API key yet. Add one on the Account tab to use these options.'));
+    for (const f of schema.fields.filter(x => x.group === g.id)) {
+      const extra = (f.key === 'GENERATE_LANDSCAPE_FROM_POSTER' && !S.server.has_pillow)
+        ? [h('p', { class: 'result warn' }, 'Pillow is not installed on this server, so this will not work yet.')] : [];
+      card.append(form.row(f, extra));
+      if (f.key === 'GENERATE_LANDSCAPE_FROM_POSTER') cropBubble(p, card.lastElementChild);
+      if (f.tool === 'crop_test') card.append(...cropTool());
+      if (f.tool === 'clear_cache') card.append(cacheStatusRow(p));
+    }
+    el.append(card);
+  }
+  el.applyDepends = form.applyDepends;
+  form.applyDepends();
+  form.captureSaved();
+  el.append(installCard);   // last: add it to Nuvio once the settings are the way you want them
+
+  // --- save bar with delete
+  const confirmBox = h('div', { class: 'confirm', hidden: true });
+  const deleteBtn = h('button', { type: 'button', class: 'btn danger', onclick: () => { deleteBtn.hidden = true; confirmBox.hidden = false; } }, 'Delete Profile');
+  confirmBox.append(
+    h('span', {}, `Delete ${p.label}? Its link stops working.`),
+    h('button', { type: 'button', class: 'btn danger small', onclick: async () => {
+      try { await api(`/api/profiles/${p.id}`, 'DELETE'); removeProfile(p.id); toast('Profile deleted'); }
+      catch (e) { if (!e.handled) toast(e.message); }
+    } }, 'Yes, Delete'),
+    h('button', { type: 'button', class: 'btn ghost small', onclick: () => { confirmBox.hidden = true; deleteBtn.hidden = false; } }, 'Keep It'));
+  const bar = savebar({ label: 'Save Profile', extra: h('div', {}, deleteBtn, confirmBox), onSave: async () => {
+    form.clearErrors(); nameErr.textContent = ''; bar.saveBtn.disabled = true;
+    try {
+      bar.clearWarn('account');
+      if (panels.get('general').dirty) {   // the Account tab is saved first: its login and key control every profile
+        bar.setWarn('account', 'The Account tab still has unsaved changes. Save them first.');
+        bar.saveBtn.disabled = false; return;
+      }
+      const r = await api(`/api/profiles/${p.id}`, 'PUT', { label: nameInput.value, settings: form.collect() });
+      const i = S.profiles.findIndex(x => x.id === p.id); S.profiles[i] = r.profile;
+      const open = rememberOpen(el);
+      replacePanel(p.id, buildProfile(r.profile), open);
+      renderTabs(); toast(`${r.profile.label} saved`);
+    } catch (e) {
+      if (e.handled) return;
+      const errs = (e.data && e.data.errors) || {};
+      if (errs.label) { nameErr.textContent = errs.label; nameInput.focus(); }
+      const first = form.showErrors(errs);
+      if (first) first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      else if (!errs.label) toast(e.message);
+      bar.saveBtn.disabled = false;
+    }
+  } });
+  el.append(bar);
+  const snap = () => JSON.stringify([nameInput.value, schema.fields.map(f => form.ctrls[f.key].get())]);
+  const saved = snap();
+  const touched = (e) => {
+    if (e.target.closest('[data-ignore]')) return;
+    form.applyDepends(); markDirty(p.id, snap() !== saved);
+    form.markChanges(); nameDot.hidden = nameInput.value === p.label;
+  };
+  el.addEventListener('input', touched);
+  el.addEventListener('change', touched);
+  el.bar = bar;
+  el.tabName = () => nameInput.value.trim() || `Profile ${p.number}`;   // the tab follows the name as it is typed
+  nameInput.addEventListener('input', () => { const b = tabButtons.get(p.id); if (b) b.textContent = el.tabName(); });
+  if (refreshResults.has(p.id)) applyStatus(p.id, refreshResults.get(p.id));   // a result already shown stays through a save
+  return el;
+}
+
+// ------------------------------------------------------------------ tabs and panels
+// The notice follows what is in the Account tab's TMDB key box right now, saved or not.
+function tmdbKeyTyped() {
+  const account = panels.get('general');
+  return !!(account && account.el.form && account.el.form.ctrls.TMDB_API_KEY.get().trim());
+}
+function showTmdbNotices() {
+  const typed = tmdbKeyTyped();
+  document.querySelectorAll('.tmdb-notice').forEach(n => { n.hidden = typed; });
+  document.querySelectorAll('[data-needs-key]').forEach(n => { n.disabled = !typed; });
+  panels.forEach(p => { if (p.el.applyDepends) p.el.applyDepends(); });   // lock or unlock every profile's TMDB section
+}
+
+function markDirty(id, dirty = true) {
+  const panel = panels.get(id); if (!panel) return;
+  panel.dirty = dirty; panel.el.bar.setDirty(dirty);
+  const btn = tabButtons.get(id); if (btn) { if (dirty) btn.setAttribute('data-dirty', ''); else btn.removeAttribute('data-dirty'); }
+}
+
+function replacePanel(id, el, openFlags) {
+  const old = panels.get(id);
+  el.hidden = old ? old.el.hidden : true;
+  restoreOpen(el, openFlags);
+  if (old) old.el.replaceWith(el); else document.getElementById('panels').append(el);
+  panels.set(id, { el, dirty: false });
+  const btn = tabButtons.get(id); if (btn) btn.removeAttribute('data-dirty');
+}
+
+function activate(id, { focus } = {}) {
+  active = id;
+  for (const [pid, panel] of panels) panel.el.hidden = pid !== id;
+  for (const [pid, btn] of tabButtons) { btn.setAttribute('aria-selected', String(pid === id)); btn.tabIndex = pid === id ? 0 : -1; }
+  const p = S.profiles.find(x => x.id === id);
+  history.replaceState(null, '', id === 'general' ? '#account' : `#profile-${p ? p.number : ''}`);
+  if (focus) tabButtons.get(id).focus();
+}
+
+function renderTabs() {
+  tabButtons.clear();
+  const bar = document.getElementById('tabs');
+  const make = (id, label) => {
+    const btn = h('button', { class: 'tab', role: 'tab', id: `tab-${id}`, type: 'button', 'aria-controls': `panel-${id}`, 'aria-selected': String(id === active),
+      tabIndex: id === active ? 0 : -1, onclick: () => activate(id), disabled: id !== 'general' && !S.general_ready,
+      title: id !== 'general' && !S.general_ready ? 'Validate your Nuvio login first' : false }, label);
+    if (panels.get(id) && panels.get(id).dirty) btn.setAttribute('data-dirty', '');
+    tabButtons.set(id, btn); return btn;
+  };
+  const add = h('button', { class: 'tab add', type: 'button', 'aria-label': 'Add profile', onclick: addProfile, disabled: !S.general_ready,
+    title: S.general_ready ? 'Add profile' : 'Validate your Nuvio login first' }, '+');
+  bar.replaceChildren(make('general', 'Account'), ...S.profiles.map(p => make(p.id, panels.get(p.id) && panels.get(p.id).el.tabName ? panels.get(p.id).el.tabName() : p.label)), add);
+  bar.onkeydown = (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const ids = [...tabButtons.keys()].filter(k => !tabButtons.get(k).disabled); const i = ids.indexOf(active);
+    activate(ids[(i + (e.key === 'ArrowRight' ? 1 : ids.length - 1)) % ids.length], { focus: true });
+  };
+}
+
+function addMissingPanels() {
+  for (const p of S.profiles) {
+    if (panels.has(p.id)) continue;
+    const el = buildProfile(p); el.hidden = true;
+    document.getElementById('panels').append(el); panels.set(p.id, { el, dirty: false });
+  }
+}
+
+async function addProfile() {
+  try {
+    const r = await api('/api/profiles', 'POST');
+    S.profiles.push(r.profile); S.profiles.sort((a, b) => a.number - b.number);
+    const el = buildProfile(r.profile); el.hidden = true;
+    document.getElementById('panels').append(el); panels.set(r.profile.id, { el, dirty: false });
+    renderTabs(); activate(r.profile.id, { focus: true });
+    toast(`${r.profile.label} added`);
+  } catch (e) { if (!e.handled) toast(e.message); }
+}
+
+function removeProfile(id) {
+  const i = S.profiles.findIndex(p => p.id === id);
+  S.profiles.splice(i, 1);
+  panels.get(id).el.remove(); panels.delete(id); statusViews.delete(id);
+  const next = S.profiles[Math.max(0, i - 1)];
+  active = next ? next.id : 'general';
+  renderTabs(); activate(active);
+}
+
+function showApp() {
+  logoutBtn.hidden = false;
+  panels.clear(); statusViews.clear();
+  app.replaceChildren(
+    h('div', { class: 'tabs-wrap' }, h('div', { class: 'tabs', id: 'tabs', role: 'tablist', 'aria-label': 'Settings' })),
+    h('div', { id: 'panels' }));
+  const generalEl = buildGeneral(); generalEl.hidden = true;
+  document.getElementById('panels').append(generalEl); panels.set('general', { el: generalEl, dirty: false });
+  for (const p of S.profiles) {
+    const el = buildProfile(p); el.hidden = true;
+    document.getElementById('panels').append(el); panels.set(p.id, { el, dirty: false });
+  }
+  const hash = location.hash;
+  const wanted = (hash === '#account' || hash === '#general') ? 'general'
+    : (/^#profile-(\d+)$/.exec(hash) ? (S.profiles.find(p => p.number === Number(RegExp.$1)) || {}).id : null);
+  active = !S.general_ready ? 'general' : (wanted || (S.profiles[0] ? S.profiles[0].id : 'general'));
+  renderTabs(); activate(active);
+}
+
+// Signed out after 1 hour without any activity, even with the page left open (the server enforces the same limit
+// on its side). Activity also tells the server, now and then, that someone is still here.
+const IDLE_LIMIT = 3600 * 1000, KEEPALIVE_AFTER = 10 * 60 * 1000;
+let lastActive = Date.now();
+function checkIdle() {
+  if (S && Date.now() - lastActive > IDLE_LIMIT) {
+    api('/api/logout', 'POST').catch(() => {});
+    showLogin('Signed out after 1 hour of no activity.');
+  }
+}
+function noteActivity() {
+  if (!S) return;
+  if (Date.now() - lastActive > IDLE_LIMIT) { checkIdle(); return; }
+  lastActive = Date.now();
+  if (Date.now() - lastApi > KEEPALIVE_AFTER) api('/api/session').catch(() => {});
+}
+['pointerdown', 'keydown', 'input', 'scroll'].forEach(ev => window.addEventListener(ev, noteActivity, { passive: true, capture: true }));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkIdle(); });   // timers sleep with the tab
+setInterval(checkIdle, 60 * 1000);
+
+window.addEventListener('beforeunload', (e) => {
+  if ([...panels.values()].some(p => p.dirty)) { e.preventDefault(); e.returnValue = ''; }
+});
+
+async function boot() {
+  try { S = await api('/api/state'); } catch (e) { if (!e.handled) app.replaceChildren(h('p', { class: 'err' }, e.message)); return; }
+  lastActive = Date.now();   // a new sign-in starts a fresh hour
+  showApp();
+}
+boot();
+</script>
+</body>
+</html>
