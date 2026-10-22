@@ -62,7 +62,7 @@ A self-hosted add-on for Nuvio that republishes your own Nuvio Library as a cata
 
 4. Open `http://localhost:7000/configure` and sign in with your `ADMIN_PASSWORD`.
 
-To update later: `docker compose pull`, then `docker compose up -d`. To stay on one version, use `:1.0.0` instead of `:latest` in the image line.
+To update later: `docker compose pull`, then `docker compose up -d`.
 
 ### Option 2: Docker Run
 
