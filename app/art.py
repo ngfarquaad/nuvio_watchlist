@@ -57,7 +57,7 @@ def art_key(url):
 
 
 def real_url(url):
-    """Where to send a client if a generated image can't be made: the portrait poster."""
+    """Where to send a client if a generated image can't be made: the poster."""
     return url[len(GENERATED_PREFIX):] if url.startswith(GENERATED_PREFIX) else url
 
 
@@ -85,7 +85,7 @@ def trim_black_borders(img, dark=18, max_fraction=0.15):
 
 def centre_crop(data):
     """JPEG bytes: the middle 16:9 band of a poster, which is what Nuvio shows when it has to fit a
-    portrait poster into a landscape card (it scales to fill the card and crops from the centre)."""
+    poster into a landscape card (it scales to fill the card and crops from the centre)."""
     img = Image.open(io.BytesIO(data))
     img.load()
     img = img.convert("RGB")
@@ -107,7 +107,7 @@ def thumbnail(jpeg, width=360):
 
 
 def landscape_from_poster(data):
-    """JPEG bytes: a 16:9 slice of a portrait poster, starting 5% down after trimming borders."""
+    """JPEG bytes: a 16:9 slice of a poster, starting 5% down after trimming borders."""
     img = Image.open(io.BytesIO(data))
     img.load()
     img = trim_black_borders(img.convert("RGB"))
@@ -144,7 +144,7 @@ def dir_info(root):
 
 
 def dir_summary(root, known):
-    """What a profile's cache folder holds: image files, bytes, and how many of the images are portrait posters,
+    """What a profile's cache folder holds: image files, bytes, and how many of the images are posters,
     landscape images and landscape crops. Each image's info file says which it is; `known` remembers what has
     been read ({image name: (info file time, kind)}), so only new or changed info files are opened. Images with
     no kind recorded count toward the files and bytes only."""
@@ -154,7 +154,7 @@ def dir_summary(root, known):
         names = os.listdir(root)
     except OSError:
         known.clear()
-        return {"files": 0, "bytes": 0, "portrait": 0, "landscape": 0, "crops": 0}
+        return {"files": 0, "bytes": 0, "poster": 0, "landscape": 0, "crops": 0}
     for name in names:
         if name.endswith((".json", ".tmp")):
             continue
@@ -179,7 +179,7 @@ def dir_summary(root, known):
             counts[seen[1]] += 1
     for name in [n for n in known if n not in names]:
         del known[name]
-    return {"files": files, "bytes": size, "portrait": counts["poster"], "landscape": counts["landscape"],
+    return {"files": files, "bytes": size, "poster": counts["poster"], "landscape": counts["landscape"],
             "crops": counts["crop"]}
 
 

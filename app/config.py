@@ -95,7 +95,7 @@ SORTS = [
 ]
 SHAPES = [
     {"value": "auto", "label": "Automatic"},
-    {"value": "poster", "label": "Portrait"},
+    {"value": "poster", "label": "Poster"},
     {"value": "landscape", "label": "Landscape"},
 ]
 NUVIO_PROFILES = [{"value": str(n), "label": str(n)} for n in range(1, NUVIO_MAX_PROFILES + 1)]
@@ -127,7 +127,7 @@ PROFILE_FIELDS = [
     _f("CATALOG_SORT", "Sort Order", "choice", "added_desc", "catalog",
        "The order titles appear in.", choices=SORTS),
     _f("CATALOG_POSTER_SHAPE", "Card Shape", "choice", "auto", "catalog",
-       "Sets each row's card shape. Automatic uses the shape saved from your Library. Portrait or Landscape forces "
+       "Sets each row's card shape. Automatic uses the shape saved from your Library. Poster or Landscape forces "
        "that shape for every title. Nuvio's own landscape setting overrides this when enabled.", choices=SHAPES),
     _f("CATALOG_LIST_ITEMS_SIZE", "Titles per Page", "int", 20, "catalog",
        "How many titles Nuvio loads at a time.", min=1, max=100, digits=True),

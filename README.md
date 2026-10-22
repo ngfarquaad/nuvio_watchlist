@@ -62,7 +62,6 @@ A self-hosted add-on for Nuvio that republishes your own Nuvio Library as a cata
 
 4. Open `http://localhost:7000/configure` and sign in with your `ADMIN_PASSWORD`.
 
-To update later: `docker compose pull`, then `docker compose up -d`.
 
 ### Option 2: Docker Run
 
@@ -133,7 +132,7 @@ The Nuvio email and password the add-on signs in with, and an optional TMDB API 
 | Catalog Name / Movies / Series     | `Nuvio Watchlist`, `Nuvio Watchlist - Movies`, `Nuvio Watchlist - Series` | The row names on Nuvio's home screen. |
 | Show on the Home Screen            | On                       | Off keeps the rows only in Nuvio's catalog list. |
 | Sort Order                         | Newest Added First       | Added, released, name or random. Random reshuffles on every refresh. |
-| Card Shape                         | Automatic                | Automatic keeps each title's saved shape. Portrait or Landscape forces one. In Landscape, a title with no landscape artwork keeps its portrait poster unless Crop Landscape Images from Posters is on. |
+| Card Shape                         | Automatic                | Automatic keeps each title's saved shape. Poster or Landscape forces one. In Landscape, a title with no landscape artwork keeps its poster unless Crop Landscape Images from Posters is on. |
 | Titles per Page                    | 20                       | How many titles Nuvio loads at a time (1 to 100). |
 | Catalog Cache TTL                  | 3600 s                   | How long a built catalog is served before it expires (300 to 604,800). |
 | Refresh in Background              | On                       | Rebuilds the catalog on a schedule so Nuvio is always answered from memory. |

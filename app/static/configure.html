@@ -163,7 +163,7 @@
   .bar-warn[hidden] { display: none; }
   .req.opt { color: var(--warn); border-color: rgba(242,189,98,.4); margin-left: 10px; vertical-align: middle; }
   .row.tool { border-top: 0; padding-top: 0; }   /* part of the crop setting above it, so no divider */
-  .crop-results { display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 12px 16px; align-items: end; max-width: 760px; padding: 4px 24px 22px; }   /* one line: a portrait poster and two landscape crops, all the same height scale */
+  .crop-results { display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 12px 16px; align-items: end; max-width: 760px; padding: 4px 24px 22px; }   /* one line: a poster and two landscape crops, all the same height scale */
   .crop-results figure { margin: 0; display: grid; gap: 8px; }
   .crop-results .crop-title { grid-column: 1 / -1; margin: 0; font-weight: 600; font-size: 14px; }
   .crop-results img { width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line-2); background: var(--field); display: block; }
@@ -839,9 +839,9 @@ const cropViews = new Map();    // profile id -> redraws the cropped-titles bubb
 const cacheViews = new Map();   // profile id -> redraws that profile's cache table, called by applyStatus as downloads arrive
 const fmtBytes = (n) => n >= 1048576 ? `${(n / 1048576).toFixed(n >= 10485760 ? 0 : 1)} MB` : n >= 1024 ? `${Math.round(n / 1024)} KB` : `${n} B`;
 
-// What the profile has downloaded: portrait posters, landscape images, landscape images cropped from posters, and the size of it all.
+// What the profile has downloaded: posters, landscape images, landscape images cropped from posters, and the size of it all.
 function cacheTable() {
-  const lines = [['Portrait Images', 'portrait'], ['Landscape Images', 'landscape'], ['Cropped Landscape Images', 'crops'], ['Total Size', 'bytes']];
+  const lines = [['Poster Images', 'poster'], ['Landscape Images', 'landscape'], ['Cropped Landscape Images', 'crops'], ['Total Size', 'bytes']];
   const values = {};
   const pill = h('span', { class: 'chip building cs-pill', hidden: true }, h('span', { class: 'dot' }), 'Updating');
   const node = h('div', { class: 'cache-status', role: 'table', 'aria-label': 'Cache Storage' },

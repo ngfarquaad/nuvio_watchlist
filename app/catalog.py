@@ -221,7 +221,7 @@ class Instance:
                 poster = landscape
             shape = "landscape"
         if shape == "landscape":
-            # a landscape card gets landscape art; with TMDB on, "poster" would otherwise be TMDB's portrait poster
+            # a landscape card gets landscape art; with TMDB on, "poster" would otherwise be TMDB's poster
             poster = (landscape if self.tmdb else None) or poster or landscape
             landscape = landscape or poster
         meta = {
