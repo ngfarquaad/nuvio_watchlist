@@ -17,7 +17,7 @@ from .config import general_ready
 from .nuvio import NuvioClient
 
 log = logging.getLogger("nuvio_watchlist")
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 EXPIRED_GRACE = 120   # seconds past expiry before a request rebuilds for itself because the schedule seems stuck
 
 # meta field -> image cache class; the class is also the <kind> in /poster-cache/<kind>/<file>.
