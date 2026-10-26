@@ -13,3 +13,4 @@ __pycache__/
 # your own settings (docker-compose.example.yml is the tracked template)
 .env
 docker-compose.yml
+claude.md
